@@ -10,7 +10,7 @@ import Foundation
 struct VimeoVideo {
     let id: UUID
     let title: String
-    let qualityUrls: [URLVideoQuality]
+    let videoUrls: [URLVideo]
     let url: URL
     let size: CGSize
     var aspectRatio: Double {
@@ -23,10 +23,10 @@ struct VimeoVideo {
 }
 
 extension VimeoVideo {
-    struct URLVideoQuality {
+    struct URLVideo {
         let quality: VimeoResponse.Files.Progressive.Quality
         let url: URL
-        let size: CGSize
+        let size: CGSize?
     }
     
     struct URLThumbQuality {
@@ -37,11 +37,19 @@ extension VimeoVideo {
 
 extension VimeoVideo {
     static func build(response: VimeoResponse) -> Self? {
-        let qualityUrls = response.request.files.progressive.compactMap({ file -> VimeoVideo.URLVideoQuality? in
+        var videoUrls = response.request.files.progressive.compactMap({ file -> VimeoVideo.URLVideo? in
             return .init(quality: file.quality, url: file.url, size: .init(width: file.width, height: file.height))
         })
         let size = CGSize(width: response.video.width, height: response.video.height)
-        guard let url = qualityUrls.first(where: { $0.size == size })?.url else { return nil }
+        
+        if let cdnPlayer = response.request.files.hls.defaultPlayer {
+            let videoURL: URLVideo = .init(quality: .qualityUnknown, url: cdnPlayer.url, size: nil)
+            videoUrls.append(videoURL)
+        }
+        
+        guard let url = videoUrls.highestResolutionURLVideo?.url else { return nil }
+        
+        print(url)
         
         let id = UUID()
         let title = response.video.title
@@ -56,7 +64,7 @@ extension VimeoVideo {
         return .init(
             id: id,
             title: title,
-            qualityUrls: qualityUrls,
+            videoUrls: videoUrls,
             url: url,
             size: size,
             coverURL: coverURL,
@@ -64,5 +72,27 @@ extension VimeoVideo {
             duration: duration,
             frameRate: frameRate
         )
+    }
+}
+
+extension Array<VimeoVideo.URLVideo> {
+    var highestResolutionURLVideo: VimeoVideo.URLVideo? {
+        self.max { lhs, rhs in
+            if let lhsSize = lhs.size, let rhsSize = rhs.size {
+                lhsSize.width < rhsSize.width
+            } else {
+                false
+            }
+        }
+    }
+    
+    var lowestResolutionURLVideo: VimeoVideo.URLVideo? {
+        self.min { lhs, rhs in
+            if let lhsSize = lhs.size, let rhsSize = rhs.size {
+                lhsSize.width < rhsSize.width
+            } else {
+                false
+            }
+        }
     }
 }
