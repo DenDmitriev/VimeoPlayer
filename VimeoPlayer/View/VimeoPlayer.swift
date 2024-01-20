@@ -21,7 +21,7 @@ struct VimeoPlayer: View {
                 .onReceive(viewModel.$vimeoVideo) { vimeoVideo in
                     videoURL = vimeoVideo?.url
                 }
-                .onChange(of: videoURL) { _, newVideoURL in
+                .onChange(of: videoURL) { newVideoURL in
                     if let newVideoURL {
                         viewModel.removeObservers()
                         player = AVPlayer(url: newVideoURL)
@@ -41,7 +41,7 @@ struct VimeoPlayer: View {
                             await viewModel.fetchVimeoVideo(by: vimeoVideoURL)
                         }
                     }
-                    .onChange(of: vimeoVideoURL) { _, newVimeoVideoURL in
+                    .onChange(of: vimeoVideoURL) { newVimeoVideoURL in
                         Task {
                             await viewModel.fetchVimeoVideo(by: newVimeoVideoURL)
                         }

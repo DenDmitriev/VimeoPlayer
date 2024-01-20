@@ -49,6 +49,8 @@ extension VimeoVideo {
         
         guard let url = videoUrls.highestResolutionURLVideo?.url else { return nil }
         
+        print(url)
+        
         let id = UUID()
         let title = response.video.title
         let thumbs = VimeoResponse.Video.Thumbs.CodingKeys.allCases.compactMap { quality -> URLThumbQuality? in
